@@ -18,7 +18,6 @@ const EMBEDDED_PACKAGE_JSON = JSON.stringify({
   name: "dev-browser-runtime",
   private: true,
   type: "module",
-  packageManager: "pnpm@10.30.1",
   dependencies: {
     playwright: "^1.52.0",
     "playwright-core": "^1.52.0",
@@ -33,6 +32,10 @@ const clients = new Set<net.Socket>();
 
 let server: net.Server | null = null;
 let shuttingDown: Promise<void> | null = null;
+
+function npmCommand(): string {
+  return process.platform === "win32" ? "npm.cmd" : "npm";
+}
 
 function formatError(error: unknown): string {
   if (error instanceof Error) {
@@ -203,12 +206,12 @@ async function handleInstall(socket: net.Socket, request: { id: string }): Promi
   try {
     await mkdir(BASE_DIR, { recursive: true });
     await writeFile(path.join(BASE_DIR, "package.json"), EMBEDDED_PACKAGE_JSON);
-    await runInstallCommand(output, request.id, "pnpm", ["install"], BASE_DIR, "pnpm install");
+    await runInstallCommand(output, request.id, npmCommand(), ["install"], BASE_DIR, "npm install");
     await runInstallCommand(
       output,
       request.id,
-      "pnpm",
-      ["exec", "playwright", "install", "chromium"],
+      npmCommand(),
+      ["exec", "--", "playwright", "install", "chromium"],
       BASE_DIR,
       "Playwright install"
     );
